@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+// victor@2018-11-23: This is no longer missing type in our project
+#if false
+
 using System;
 using System.Runtime.Serialization;
 
@@ -37,3 +40,5 @@ namespace System.IO {
  
     }
 }
+
+#endif
