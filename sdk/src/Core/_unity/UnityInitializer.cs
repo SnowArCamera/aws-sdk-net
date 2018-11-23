@@ -35,81 +35,35 @@ namespace Amazon
     /// </summary>
     public class UnityInitializer : MonoBehaviour
     {
-
-        private static UnityInitializer _instance = null;
-        private static object _lock = new object();
-
-        #region constructor
-        private UnityInitializer(){}
-        #endregion
-
         #region public api
         /// <summary>
-        /// Attaches the initializer to a game object
+        /// Make sure this is called before any other AWSSDK code is run
+        /// If using this SDK in Editor mode, call EditorApplication.LockReloadAssemblies before calling this
+        /// Keep managerGO from being destroyed during the AWS Session, it maintains a main thread dispatcher running a coroutine
+        /// If in Editor mode, set UnityMainThreadDispatcher returned to run in edit mode
         /// </summary>
-        /// <param name="gameObject">The game object to which you attach the initializer to</param>
-        public static void AttachToGameObject(GameObject gameObject)
+        public static UnityMainThreadDispatcher StartAWSSession(GameObject managerGO)
         {
-            if (gameObject != null)
-            {
-                gameObject.AddComponent<UnityInitializer>();
-                UnityEngine.Debug.Log(string.Format(@"Attached unity initializer to {0}", gameObject.name));
-            }
-            else
-            {
-                throw new ArgumentNullException("gameObject");
-            }
-         
+            if (_mainThread == null || !_mainThread.Equals(Thread.CurrentThread))
+                _mainThread = Thread.CurrentThread;
+
+            AmazonHookedPlatformInfo.Instance.Init();
+
+            TraceListener tracelistener = new UnityDebugTraceListener("UnityDebug");
+            AWSConfigs.AddTraceListener("Amazon", tracelistener);
+
+            return managerGO.AddComponent<UnityMainThreadDispatcher>();
         }
 
         /// <summary>
-        /// Returns the Instance of UnityInitializer
+        /// Make sure this is called after all call to AWSSDK service gracefully finishes
+        /// If using this SDK in Editor mode, call EditorApplication.UnlockReloadAssemblies after calling this
         /// </summary>
-        public static UnityInitializer Instance
+        public static void EndAWSSession(UnityMainThreadDispatcher dispatcher)
         {
-            get
-            {
-                return _instance;
-            }
-        }
+            Destroy(dispatcher);
 
-
-        public void Awake()
-        {
-            lock (_lock)
-            {
-                if (_instance == null)
-                {
-                    // singleton instance
-                    _instance = this;
-
-                    if (_mainThread == null || !_mainThread.Equals(Thread.CurrentThread))
-                        _mainThread = Thread.CurrentThread;
-
-                    AmazonHookedPlatformInfo.Instance.Init();
-
-                    // preventing the instance from getting destroyed between scenes
-                    DontDestroyOnLoad(this);
-
-                    //initialize the logger
-                    TraceListener tracelistener = new UnityDebugTraceListener("UnityDebug");
-                    AWSConfigs.AddTraceListener("Amazon", tracelistener);
-
-                    // Associate the main thread dispatcher
-                    _instance.gameObject.AddComponent<UnityMainThreadDispatcher>();
-
-
-                }
-                else
-                {
-                    if (this != _instance)
-                    {
-                        //destroy the new instance
-                        DestroyObject(this);
-                    }
-                }
-
-            }
+            AWSConfigs.RemoveTraceListener("Amazon", "UnityDebug");
         }
         #endregion
 
