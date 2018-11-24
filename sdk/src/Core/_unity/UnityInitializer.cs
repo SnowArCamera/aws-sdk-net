@@ -47,6 +47,8 @@ namespace Amazon
             if (_mainThread == null || !_mainThread.Equals(Thread.CurrentThread))
                 _mainThread = Thread.CurrentThread;
 
+            AWSConfigs.HttpClient = AWSConfigs.HttpClientOption.UnityWebRequest;
+
             AmazonHookedPlatformInfo.Instance.Init();
 
             TraceListener tracelistener = new UnityDebugTraceListener("UnityDebug");
