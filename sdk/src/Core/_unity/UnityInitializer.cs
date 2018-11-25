@@ -63,7 +63,14 @@ namespace Amazon
         /// </summary>
         public static void EndAWSSession(UnityMainThreadDispatcher dispatcher)
         {
-            Destroy(dispatcher);
+            if (Application.isEditor && !Application.isPlaying)
+            {
+                DestroyImmediate(dispatcher);
+            }
+            else
+            {
+                Destroy(dispatcher);
+            }         
 
             AWSConfigs.RemoveTraceListener("Amazon", "UnityDebug");
         }
